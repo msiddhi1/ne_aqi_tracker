@@ -4,53 +4,65 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nebraska AQI Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 16px; }
-    h1 { font-size: 22px; font-weight: 700; color: #f8fafc; }
-    .subtitle { font-size: 13px; color: #94a3b8; margin: 4px 0 20px; }
-    .banner { border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; padding: 16px; }
+    h1 { font-size: 22px; font-weight: 700; color: #0f172a; }
+    .subtitle { font-size: 13px; color: #64748b; margin: 4px 0 16px; }
+    .banner { border-radius: 10px; padding: 14px 18px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .banner-label { font-weight: 700; font-size: 18px; }
     .banner-rec { font-size: 13px; margin-top: 2px; }
     .banner-aqi { font-size: 28px; font-weight: 800; text-align: right; }
     .banner-aqi-label { font-size: 11px; }
-    .thresholds { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-    .threshold-tag { background: #1e293b; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
-    .alert-bar { background: #7f1d1d; border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-    .card { background: #1e293b; border-radius: 10px; padding: 14px; border-left: 4px solid #334155; }
-    .card-city { font-weight: 700; font-size: 15px; color: #f1f5f9; }
-    .card-area { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+    .thresholds { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .threshold-tag { background: #fff; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .alert-bar { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: #991b1b; }
+    #map { width: 100%; height: 380px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.10); z-index: 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px; border-left: 4px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.07); cursor: pointer; transition: box-shadow 0.15s; }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .card-city { font-weight: 700; font-size: 15px; color: #0f172a; }
+    .card-area { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
     .card-aqi { font-size: 32px; font-weight: 800; }
     .card-label { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-    .card-detail { font-size: 11px; color: #94a3b8; }
-    .card-detail span { color: #e2e8f0; }
-    .card-nodata { font-size: 13px; color: #475569; margin-top: 8px; }
-    .scale { margin-top: 20px; background: #1e293b; border-radius: 10px; padding: 14px; }
-    .scale-title { font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 600; }
+    .card-detail { font-size: 11px; color: #64748b; }
+    .card-detail span { color: #1e293b; font-weight: 600; }
+    .card-nodata { font-size: 13px; color: #94a3b8; margin-top: 8px; }
+    .scale { margin-top: 16px; background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    .scale-title { font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.05em; }
     .scale-bands { display: flex; gap: 4px; flex-wrap: wrap; }
     .scale-band { border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
     .footer { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .footer-text { font-size: 11px; color: #475569; }
-    .refresh-btn { background: #334155; color: #e2e8f0; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-weight: 600; }
-    .refresh-btn:hover { background: #475569; }
-    .loading { text-align: center; padding: 40px; color: #64748b; font-size: 15px; }
-    .error { background: #7f1d1d; border-radius: 8px; padding: 16px; color: #fca5a5; }
+    .footer-text { font-size: 11px; color: #94a3b8; }
+    .refresh-btn { background: #0ea5e9; color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 1px 4px rgba(14,165,233,0.3); }
+    .refresh-btn:hover { background: #0284c7; }
+    .loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 15px; }
+    .error { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; color: #991b1b; }
+    .aqi-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; border: 2px solid rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
 
 <h1>🌾 Nebraska AQI Tracker</h1>
-<p class="subtitle">Flint Hills Burn Season Monitor · EPA AirNow</p>
+<p class="subtitle">Flint Hills Burn Season Monitor · EPA AirNow · Live Data</p>
 
 <div id="banner"></div>
+
 <div class="thresholds">
-  <div class="threshold-tag" style="border: 2px solid #ff7e00; color: #ff7e00;">⚑ Watch threshold: AQI 100</div>
-  <div class="threshold-tag" style="border: 2px solid #ff0000; color: #ff0000;">⚑ Act threshold: AQI 150</div>
-  <div class="threshold-tag" style="color: #94a3b8;">🔥 PM2.5 = burn smoke indicator</div>
+  <div class="threshold-tag" style="border: 2px solid #ff7e00; color: #ff7e00;">⚑ Watch: AQI 100</div>
+  <div class="threshold-tag" style="border: 2px solid #ef4444; color: #ef4444;">⚑ Act: AQI 150</div>
+  <div class="threshold-tag" style="color: #64748b; border: 1px solid #e2e8f0;">🔥 PM2.5 = burn smoke</div>
 </div>
+
 <div id="alert-bar"></div>
-<div id="grid" class="grid"><div class="loading">⏳ Fetching live AQI data for Nebraska stations...</div></div>
+
+<div id="map"></div>
+
+<div id="grid" class="grid">
+  <div class="loading" style="grid-column:1/-1">⏳ Fetching live AQI data...</div>
+</div>
 
 <div class="scale">
   <div class="scale-title">AQI SCALE</div>
@@ -75,46 +87,75 @@ const BANDS = [
 ];
 
 const STATIONS = [
-  { zip: "68502", city: "Lincoln" },
-  { zip: "68102", city: "Omaha" },
-  { zip: "68901", city: "Hastings" },
-  { zip: "68847", city: "Kearney" },
-  { zip: "69101", city: "North Platte" },
-  { zip: "68701", city: "Norfolk" },
-  { zip: "68776", city: "South Sioux City" },
-  { zip: "68301", city: "Beatrice" },
-  { zip: "68410", city: "Nebraska City" },
-  { zip: "69361", city: "Scottsbluff" },
+  { zip: "68502", city: "Lincoln",         lat: 40.8136, lon: -96.7026 },
+  { zip: "68102", city: "Omaha",           lat: 41.2565, lon: -95.9345 },
+  { zip: "68901", city: "Hastings",        lat: 40.5861, lon: -98.3881 },
+  { zip: "68847", city: "Kearney",         lat: 40.6993, lon: -99.0817 },
+  { zip: "69101", city: "North Platte",    lat: 41.1239, lon: -100.7654 },
+  { zip: "68701", city: "Norfolk",         lat: 41.9855, lon: -97.4170 },
+  { zip: "68776", city: "South Sioux City",lat: 42.4733, lon: -96.4114 },
+  { zip: "68301", city: "Beatrice",        lat: 40.2681, lon: -96.7478 },
+  { zip: "68410", city: "Nebraska City",   lat: 40.6761, lon: -95.8597 },
+  { zip: "69361", city: "Scottsbluff",     lat: 41.8666, lon: -103.6672 },
 ];
 
 function getBand(aqi) {
   return BANDS.find(b => aqi <= b.max) || BANDS[BANDS.length - 1];
 }
 
-// Render AQI scale
+// AQI scale
 document.getElementById("scale-bands").innerHTML = BANDS.map(b =>
   `<div class="scale-band" style="background:${b.color};color:${b.text}">${b.label}</div>`
 ).join("");
 
-async function fetchStation({ zip, city }) {
-  const url = `https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=${zip}&distance=25&API_KEY=${API_KEY}`;
+// Init map
+const map = L.map("map").setView([41.5, -99.5], 6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap contributors",
+  maxZoom: 13
+}).addTo(map);
+
+let markers = [];
+
+function addMarkers(results) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  results.forEach(({ city, lat, lon, aqi, pm25aqi, o3aqi }) => {
+    if (!lat || !lon) return;
+    const band = aqi !== null ? getBand(aqi) : null;
+    const color = band?.color ?? "#94a3b8";
+    const textColor = band?.text ?? "#fff";
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="background:${color};color:${textColor};width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:2px solid rgba(0,0,0,0.2);box-shadow:0 2px 6px rgba(0,0,0,0.18);">${aqi ?? "?"}</div>`,
+      iconSize: [42, 42],
+      iconAnchor: [21, 21],
+    });
+    const popup = `<b>${city}</b><br>AQI: <b>${aqi ?? "N/A"}</b>${band ? ` — ${band.label}` : ""}<br>${pm25aqi !== null ? `PM2.5: ${pm25aqi}<br>` : ""}${o3aqi !== null ? `Ozone: ${o3aqi}` : ""}`;
+    const m = L.marker([lat, lon], { icon }).addTo(map).bindPopup(popup);
+    markers.push(m);
+  });
+}
+
+async function fetchStation(s) {
+  const url = `https://www.airnowapi.org/aq/observation/zipCode/current/?format=application/json&zipCode=${s.zip}&distance=25&API_KEY=${API_KEY}`;
   const res = await fetch(url);
   const json = await res.json();
   const pm25 = json.find(o => o.ParameterName === "PM2.5");
   const ozone = json.find(o => o.ParameterName === "O3" || o.ParameterName === "Ozone");
   const primary = pm25 || [...json].sort((a, b) => b.AQI - a.AQI)[0];
   return {
-    city, zip,
+    ...s,
     aqi: primary?.AQI ?? null,
     pollutant: primary?.ParameterName ?? "—",
     pm25aqi: pm25?.AQI ?? null,
     o3aqi: ozone?.AQI ?? null,
-    reportingArea: primary?.ReportingArea ?? city,
+    reportingArea: primary?.ReportingArea ?? s.city,
   };
 }
 
 async function fetchAll() {
-  document.getElementById("grid").innerHTML = '<div class="loading">⏳ Fetching live AQI data for Nebraska stations...</div>';
+  document.getElementById("grid").innerHTML = '<div class="loading" style="grid-column:1/-1">⏳ Fetching live AQI data...</div>';
   document.getElementById("banner").innerHTML = "";
   document.getElementById("alert-bar").innerHTML = "";
 
@@ -140,17 +181,20 @@ async function fetchAll() {
         </div>`;
     }
 
-    // Alert bar
+    // Alert
     if (alerts.length > 0) {
       document.getElementById("alert-bar").innerHTML = `
         <div class="alert-bar">⚠️ <strong>Elevated AQI detected</strong> at: ${alerts.map(s => s.city).join(", ")}</div>`;
     }
 
+    // Map markers
+    addMarkers(results);
+
     // Cards
-    document.getElementById("grid").innerHTML = results.map(({ city, aqi, pollutant, pm25aqi, o3aqi, reportingArea }) => {
+    document.getElementById("grid").innerHTML = results.map(({ city, aqi, pollutant, pm25aqi, o3aqi, reportingArea, lat, lon }) => {
       const b = aqi !== null ? getBand(aqi) : null;
       return `
-        <div class="card" style="border-left-color:${b?.color ?? "#334155"}">
+        <div class="card" style="border-left-color:${b?.color ?? "#e2e8f0"}" onclick="map.setView([${lat},${lon}],9)">
           <div class="card-city">${city}</div>
           <div class="card-area">${reportingArea}</div>
           ${aqi !== null ? `
@@ -167,7 +211,7 @@ async function fetchAll() {
     document.getElementById("updated").textContent = `Data: EPA AirNow · Updated ${new Date().toLocaleTimeString()}`;
 
   } catch (e) {
-    document.getElementById("grid").innerHTML = `<div class="error">Failed to fetch data. Check API key or network connection.</div>`;
+    document.getElementById("grid").innerHTML = `<div class="error">Failed to fetch data. Check API key or network connection.<br><small>${e.message}</small></div>`;
   }
 }
 
